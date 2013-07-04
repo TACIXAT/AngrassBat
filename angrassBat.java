@@ -11,14 +11,26 @@ import java.awt.image.Raster;
 
 import java.util.Scanner;
 
-public class ingressBot {
+public class angrassBat {
 	public static void main(String[] args) {
-		
+		System.out.println("Press return when your mouse is in position.");
+		System.out.print("Place the mouse at the origin of the search rectangle: ");
 		Point pos = getPositionAtMouse();
+		int origX = (int) pos.getX();
+		int origY = (int) pos.getY();
+		
+		System.out.print("Place the mouse at the right bound of the search rectangle: ");
+		pos = getPositionAtMouse();
+		int width = (int) pos.getX() - origX;
+		
+		System.out.print("Place the mouse at the lower bound of the search rectangle: ");
+		pos = getPositionAtMouse();
+		int height = (int) pos.getY() - origY;
+		
 		System.out.println("x: " + pos.getX() + "\ny: " + pos.getY());
 		//dragMouse(200, 200, 300, 300, 500);
 		
-		printRectangleColors(453, 314, 60, 40);
+		printRectangleColors(origX, origY, width, height);
 		
 		/*while(true) {
 			Color pixelColor = getColorAtMouse();
@@ -32,7 +44,6 @@ public class ingressBot {
 	public static Point getPositionAtMouse() {
 		//wait for return
 		Scanner read = new Scanner(System.in);
-		System.out.print("Move your mouse then press enter to print its coordinates: ");
 		read.nextLine();
 		//get and return mouse position
 		PointerInfo pinf = MouseInfo.getPointerInfo();
@@ -75,6 +86,8 @@ public class ingressBot {
 		try {
 			Rectangle rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
 			Robot kittens = new Robot();
+			System.out.println("Grabbing screen in 3 seconds. Minimize windows.");
+			kittens.delay(3000);
 			BufferedImage screenGrab = kittens.createScreenCapture(rect);
 			Raster image = screenGrab.getData();
 			int x, y, height, width;
@@ -87,8 +100,9 @@ public class ingressBot {
 			for(y=0; y<height; y++) {
 				for(x=0; x<width; x++){
 					pixel = image.getPixel(x, y, new int[3]);
-					if(pixel[0] > 180 && pixel[1] > 180 && pixel[2] > 180) {
+					if(pixel[0] > 188 && pixel[1] > 188 && pixel[2] > 188) {
 						System.out.print("X");
+						//System.out.println("r: " + pixel[0] + " g: " + pixel[1] + " b: " + pixel[2]);
 					} else {
 						System.out.print(" ");
 					}
