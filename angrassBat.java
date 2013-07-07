@@ -16,25 +16,29 @@ public class angrassBat {
 
 	public static void main(String[] args) {
 		System.out.println("Press return when your mouse is in position.");
-		System.out.print("Place the mouse at the origin of the search rectangle: ");
+		System.out.print("Place the mouse at the upper left corner of the search rectangle: ");
 		Point pos = getPositionAtMouse();
 		int origX = (int) pos.getX();
 		int origY = (int) pos.getY();
 		
-		System.out.print("Place the mouse at the right bound of the search rectangle: ");
+		System.out.print("Place the mouse at the lower right corner of the search rectangle: ");
 		pos = getPositionAtMouse();
 		int width = (int) pos.getX() - origX;
-		
-		System.out.print("Place the mouse at the lower bound of the search rectangle: ");
-		pos = getPositionAtMouse();
 		int height = (int) pos.getY() - origY;
 		
-		System.out.println("x: " + pos.getX() + "\ny: " + pos.getY());
+		if(width < 0 || height < 0) {
+			System.out.println("Come back when you don't suck at rectangles.");
+		}
+		
+		//System.out.println("x: " + pos.getX() + "\ny: " + pos.getY());
 		//dragMouse(200, 200, 300, 300, 500);
 		
 		int[][] imageMap = screenToArray(origX, origY, width, height);
 		imageMap = connectedComponents(imageMap);
-		printImageMap(imageMap);
+		int count = estimatePortals();
+		
+		System.out.println("There are approximately " + count + " unclaimed portals on screen.");
+		//printImageMap(imageMap);
 		/*while(true) {
 			Color pixelColor = getColorAtMouse();
 			System.out.println(	"r: " + pixelColor.getRed() + 
@@ -84,40 +88,6 @@ public class angrassBat {
 		}
 	}
 	
-	//public static boolean searchRectForColor(Rectangle rect, redThresh, greenThresh, blueThresh)
-	/*public static void printRectangleColors(int rectX, int rectY, int rectWidth, int rectHeight) {
-		try {
-			Rectangle rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
-			Robot kittens = new Robot();
-			System.out.println("Grabbing screen in 3 seconds. Minimize windows.");
-			kittens.delay(3000);
-			BufferedImage screenGrab = kittens.createScreenCapture(rect);
-			Raster image = screenGrab.getData();
-			int x, y, height, width;
-			height = image.getHeight();
-			width = image.getWidth();
-			int[] pixel;
-			System.out.println("Image got, sleeping 3 seconds then printing.\nSwitch to full screen now.");
-			kittens.delay(3000);
-			
-			for(y=0; y<height; y++) {
-				for(x=0; x<width; x++){
-					pixel = image.getPixel(x, y, new int[3]);
-					if(pixel[0] > 188 && pixel[1] > 188 && pixel[2] > 188) {
-						System.out.print("X");
-						//System.out.println("r: " + pixel[0] + " g: " + pixel[1] + " b: " + pixel[2]);
-					} else {
-						System.out.print(" ");
-					}
-				}
-				System.out.println();
-			}
-			
-		} catch(AWTException awte) {
-			awte.printStackTrace();
-		}
-	}*/
-	
 	public static int[][] screenToArray(int rectX, int rectY, int rectWidth, int rectHeight) {
 		try {
 			Rectangle rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
@@ -130,11 +100,9 @@ public class angrassBat {
 			height = image.getHeight();
 			width = image.getWidth();
 			int[] pixel;
-			System.out.println("Image got, sleeping 3 seconds then printing.\nSwitch to full screen now.");
-			kittens.delay(3000);
-			
 			int set = 0x736574;
 			int[][] imageMap = new int[height][width];
+		
 			for(y=0; y<height; y++) {
 				for(x=0; x<width; x++){
 					pixel = image.getPixel(x, y, new int[3]);
@@ -181,6 +149,7 @@ public class angrassBat {
 			for(x=0; x<width; x++){
 				if(imageMap[y][x] != 0) {
 					imageMap[y][x] = getLowestEqual(imageMap[y][x]);
+					equivalenceList[0][imageMap[y][x]]++;
 				}
 			}
 		}
@@ -217,7 +186,7 @@ public class angrassBat {
 		for(i=0; i<8; i++) {
 			int xMod = x + neighbors[i][0];
 			int yMod = y + neighbors[i][1];
-			if(xMod < width && yMod < height) {
+			if(xMod < width && yMod < height && xMod > 0 && yMod > 0) {
 				int nVal = imageMap[yMod][xMod];
 				if(nVal != 0 && nVal != set) {
 					nVals[i] = nVal;
@@ -227,7 +196,7 @@ public class angrassBat {
 				}
 			}
 		}
-		
+
 		//build equivalence list
 		for(i=0; i<8; i++) {
 			if(nVals[i] != 0) {
@@ -241,6 +210,16 @@ public class angrassBat {
 		}
 		
 		return lowestNeighbor;
+	}
+	
+	public static int estimatePortals() {
+		int i;
+		int count = 0;
+		for(i=0; i<1000; i++) {
+			count += equivalenceList[0][i] / 80;
+		}
+		
+		return count;
 	}
 	
 	public static void printImageMap(int[][] imageMap) {
