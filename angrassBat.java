@@ -30,12 +30,9 @@ public class angrassBat {
 			System.out.println("Come back when you don't suck at rectangles.");
 		}
 		
-		//System.out.println("x: " + pos.getX() + "\ny: " + pos.getY());
-		//dragMouse(200, 200, 300, 300, 500);
+		catNap(5000);
 		
-		int[][] imageMap = screenToArray(origX, origY, width, height);
-		imageMap = connectedComponents(imageMap);
-		int count = estimatePortals();
+		int count = searchUnclaimed(origX, origY, width, height);
 		
 		System.out.println("There are approximately " + count + " unclaimed portals on screen.");
 		//printImageMap(imageMap);
@@ -46,6 +43,66 @@ public class angrassBat {
 								"b: " + pixelColor.getBlue() + 
 								"rgb: " + pixelColor.getRGB());
 		}//*/
+	}
+	
+	public static int searchUnclaimed(int origX, int origY, int width, int height) {
+		int dragCount = 2;
+		int count = 0;
+		boolean found = false;
+		
+		while(true) {
+			int fromX, fromY, toX, toY;
+			
+			switch(dragCount % 4) {
+				case 2:
+					fromX = origX + width;
+					fromY = origY + height / 2;
+					toX = origX;
+					toY = fromY;
+					break;
+				case 3:
+					fromX = origX + width / 2;
+					fromY = origY + height;
+					toX = fromX;
+					toY = origY;
+					break;
+				case 0:
+					fromX = origX;
+					fromY = origY + height / 2;
+					toX = origX + width;
+					toY = fromY;
+					break;
+				case 1:
+				default:
+					fromX = origX + width / 2;
+					fromY = origY;
+					toX = fromX;
+					toY = origY + height;
+					break;
+			}
+			
+			for(int i = 0; i < dragCount / 2; i++) {
+				int[][] imageMap = screenToArray(origX, origY, width, height);
+				imageMap = connectedComponents(imageMap);	//builds equiv list
+				count = estimatePortals();				//counts equiv list
+				
+				if(count > 0) {
+					found = true;
+					break;
+				}
+				
+				dragMouse(fromX, fromY, toX, toY, 5000);
+			}
+			
+			dragCount++;
+						
+			if(found)
+				return count;
+			
+			//drag mouse
+			//increment if needed
+		}
+		
 	}
 	
 	public static Point getPositionAtMouse() {
@@ -73,7 +130,7 @@ public class angrassBat {
 	
 	
 	
-	public static void dragMouse(int fromX, int fromY, int toX, int toY, int moveDelay) {
+	public static void dragMouse(int fromX, int fromY, int toX, int toY, int loadWait) {
 		try {
 			Robot kittens = new Robot();
 			kittens.mouseMove(fromX, fromY);
@@ -83,6 +140,16 @@ public class angrassBat {
 			kittens.mouseMove(toX, toY);
 			kittens.delay(100);
 			kittens.mouseRelease(InputEvent.BUTTON1_MASK);
+			kittens.delay(loadWait);
+		} catch(AWTException awte) {
+			awte.printStackTrace();
+		}
+	}
+	
+	public static void catNap(int N) {
+		try {
+			Robot kittens = new Robot();
+			kittens.delay(N);
 		} catch(AWTException awte) {
 			awte.printStackTrace();
 		}
@@ -92,8 +159,8 @@ public class angrassBat {
 		try {
 			Rectangle rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
 			Robot kittens = new Robot();
-			System.out.println("Grabbing screen in 3 seconds. Minimize windows.");
-			kittens.delay(3000);
+			//System.out.println("Grabbing screen in 3 seconds.");
+			kittens.delay(1000);
 			BufferedImage screenGrab = kittens.createScreenCapture(rect);
 			Raster image = screenGrab.getData();
 			int x, y, height, width;
@@ -128,6 +195,11 @@ public class angrassBat {
 		int width = imageMap[0].length;
 		int x, y;
 		
+		for(y=0; y<1000; y++){
+			for(x=0;x<1000; x++){
+				equivalenceList[x][y] = 0;
+			}
+		}
 		//first pass
 		for(y=0; y<height; y++) {
 			for(x=0; x<width; x++){
