@@ -8,13 +8,30 @@ import java.awt.Color;
 import java.awt.AWTException;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
+import java.awt.event.KeyEvent;
+
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.IOException;
 
 import java.util.Scanner;
 
 public class angrassBat {
+	static Robot kittens;
+	static double hlat = 39.22;
+	static double llat = 39.13;
+	static double hlon = -76.79;
+	static double llon = -76.84;
+	
 	public static int[][] equivalenceList = new int[1000][1000];
 
 	public static void main(String[] args) {
+		makeRobot();
+	
+		System.out.println("Starting position: http://www.ingress.com/intel?ll=" + hlat + "," + llon + "&z=17");
+		
 		System.out.println("Press return when your mouse is in position.");
 		System.out.print("Place the mouse at the upper left corner of the search rectangle: ");
 		Point pos = getPositionAtMouse();
@@ -28,13 +45,18 @@ public class angrassBat {
 		
 		if(width < 0 || height < 0) {
 			System.out.println("Come back when you don't suck at rectangles.");
+			return;
 		}
 		
-		catNap(5000);
+		System.out.print("Place the mouse over the center of the link button: ");
+		pos = getPositionAtMouse();
+		int linkX = (int) pos.getX();
+		int linkY = (int) pos.getY();
 		
-		int count = searchUnclaimed(origX, origY, width, height);
+		System.out.println("Sleeping 5 seconds. Bring up the Ingress Intel map now.");
+		catnap(5000);
 		
-		System.out.println("There are approximately " + count + " unclaimed portals on screen.");
+		searchUnclaimed(origX, origY, width, height, linkX, linkY);
 		//printImageMap(imageMap);
 		/*while(true) {
 			Color pixelColor = getColorAtMouse();
@@ -45,7 +67,201 @@ public class angrassBat {
 		}//*/
 	}
 	
-	public static int searchUnclaimed(int origX, int origY, int width, int height) {
+	public static void makeRobot() {
+		try {
+			kittens = new Robot();
+		} catch(AWTException awte) {
+			awte.printStackTrace();
+		}
+		
+		return;
+	}
+	
+	public static int processLink(String link, int midX, int midY, int direction) {
+		String regex = "https?://www.ingress.com/intel\\?ll=-?[0-9]+\\.[0-9]+,-?[0-9]+\\.[0-9]+\\&z=[0-9]+";
+		if(link.matches(regex)) {
+			double lat, lon;
+			int zlevel;
+			String[] data = link.split("intel\\?ll=");
+			data = data[1].split("\\&z=");
+			String[] ll = data[0].split(",");
+			String z = data[1];
+			
+			lat = Double.parseDouble(ll[0]);
+			lon = Double.parseDouble(ll[1]);
+			zlevel = Integer.parseInt(z);
+			
+			if(zlevel < 17) {
+				System.out.println("Zooming in, unclaimed portals are not currently visible.");
+				zoom(zlevel, midX, midY);
+			}
+			
+			//00 ur, 01 ul, 10 dr, 11 dl
+			if(lat < llat) {
+				direction &= 0xFFFFFD;
+			} else if(lat > hlat) {
+				direction |= 0x2;
+			}
+			
+			if(lon < llon) {
+				direction &= 0xFFFFFE;
+			} else if(lon > hlon) {
+				direction |= 0x1;
+			}
+		} else {
+			System.out.println("Link does not match.");
+		}	
+		
+		return direction;
+	}
+	
+	public static void zoom(int zlevel, int x, int y) {
+		catnap(200);
+		kittens.mouseMove(x, y);
+		catnap(200);
+		kittens.mousePress(InputEvent.BUTTON1_MASK);
+		catnap(200);
+		//this wiggle avoids clicking on a portal
+		kittens.mouseMove(x+15, y+15);	
+		catnap(200);
+		kittens.mouseMove(x, y);
+		catnap(200);
+		kittens.mouseRelease(InputEvent.BUTTON1_MASK);
+		catnap(200);
+		for(int i=zlevel; i<17; i++) {
+			kittens.mouseWheel(-1);
+			catnap(1000);
+		}
+	}
+	
+	public static String getLink(int linkX, int linkY) {
+		clickMouse(linkX, linkY);
+		catnap(200);
+		kittens.keyPress(KeyEvent.VK_TAB);
+		catnap(100);
+		kittens.keyRelease(KeyEvent.VK_TAB);
+		catnap(200);
+		kittens.keyPress(KeyEvent.VK_CONTROL);
+		catnap(200);
+		kittens.keyPress(KeyEvent.VK_C);
+		catnap(200);
+		kittens.keyRelease(KeyEvent.VK_C);
+		catnap(200);
+		kittens.keyRelease(KeyEvent.VK_CONTROL);
+		catnap(200);
+		
+		return clipContentes();
+	}
+	
+	public static String clipContentes() {
+		String result = "";
+		Toolkit toolkit = Toolkit.getDefaultToolkit();
+		Clipboard clipboard = toolkit.getSystemClipboard();
+		try {
+			try {
+				result = (String) clipboard.getData(DataFlavor.stringFlavor);
+			} catch (IOException ioex) {
+				ioex.printStackTrace();
+			}
+		} catch (UnsupportedFlavorException ufex) {
+			ufex.printStackTrace();
+		}
+		
+		return result;
+	}	
+	
+	public static int searchUnclaimed(int origX, int origY, int width, int height, int linkX, int linkY) {
+		int dragCount = 0;
+		int count = 0;
+		int direction = 2;	
+		int fromX, fromY, toX, toY;
+		boolean found = false;
+		String link;
+		
+		int midX = origX + width / 2;
+		int midY = origY + height / 2;
+		
+		int[][] imageMap;
+		
+		while(true) {
+			//vertical 
+			switch(direction) {
+				case 2:
+				case 3:
+					fromX = origX + width / 2;
+					fromY = origY + height;
+					toX = fromX;
+					toY = origY;
+					break;
+				case 0:
+				case 1:
+				default:
+					fromX = origX + width / 2;
+					fromY = origY;
+					toX = fromX;
+					toY = origY + height;
+					break;
+			}
+		
+			imageMap = screenToArray(origX, origY, width, height);
+			imageMap = connectedComponents(imageMap);	//builds equiv list
+			count = estimatePortals();				//counts equiv list
+		
+			if(count > 0) {
+				link = getLink(linkX, linkY);
+				System.out.println(link);
+				direction = processLink(link, midX, midY, direction);
+			}
+		
+			dragMouse(fromX, fromY, toX, toY, 5000);
+		
+			//horizontal
+			switch(direction) {
+				case 0:
+				case 2:
+				default:
+					fromX = origX + width;
+					fromY = origY + height / 2;
+					toX = origX;
+					toY = fromY;
+					break;
+				case 1:
+				case 3:
+					fromX = origX;
+					fromY = origY + height / 2;
+					toX = origX + width;
+					toY = fromY;
+					break;
+			}
+			
+			int oldDirection = direction;
+			dragCount = 0;
+			while(true) {
+				imageMap = screenToArray(origX, origY, width, height);
+				imageMap = connectedComponents(imageMap);	//builds equiv list
+				count = estimatePortals();				//counts equiv list
+				
+				if(dragCount % 20 == 19 || count > 0) {
+					link = getLink(linkX, linkY);
+					direction = processLink(link, midX, midY, direction);
+				
+					if(count > 0)
+						System.out.println(link);
+				}
+							
+				dragMouse(fromX, fromY, toX, toY, 5000);
+				dragCount += 1;
+								
+				if(direction != oldDirection)
+					break;
+			}
+			
+		}
+		
+		//return 0xFFFFFFFF;
+	}
+	
+	public static int NOT_UP_TO_DATE_spiralSearch(int origX, int origY, int width, int height) {
 		int dragCount = 2;
 		int count = 0;
 		boolean found = false;
@@ -117,75 +333,60 @@ public class angrassBat {
 	
 	public static Color getColorAtMouse() {
 		Point pos = getPositionAtMouse();
-		try {
-			Robot kittens = new Robot();
-			Color pixelColor = kittens.getPixelColor((int)pos.getX(), (int)pos.getY());
-			return pixelColor;
-		} catch(AWTException awte) {
-			awte.printStackTrace();
-		}
-		
-		return null;
+		Color pixelColor = kittens.getPixelColor((int)pos.getX(), (int)pos.getY());
+		return pixelColor;
 	}
 	
-	
+	public static void clickMouse(int atX, int atY) {
+		kittens.mouseMove(atX, atY);
+		catnap(200);
+		kittens.mousePress(InputEvent.BUTTON1_MASK);
+		catnap(200);
+		kittens.mouseRelease(InputEvent.BUTTON1_MASK);
+		return;		
+	}
 	
 	public static void dragMouse(int fromX, int fromY, int toX, int toY, int loadWait) {
-		try {
-			Robot kittens = new Robot();
-			kittens.mouseMove(fromX, fromY);
-			kittens.delay(100);
-			kittens.mousePress(InputEvent.BUTTON1_MASK);
-			kittens.delay(100);
-			kittens.mouseMove(toX, toY);
-			kittens.delay(100);
-			kittens.mouseRelease(InputEvent.BUTTON1_MASK);
-			kittens.delay(loadWait);
-		} catch(AWTException awte) {
-			awte.printStackTrace();
-		}
+		kittens.mouseMove(fromX, fromY);
+		catnap(200);
+		kittens.mousePress(InputEvent.BUTTON1_MASK);
+		catnap(200);
+		kittens.mouseMove(toX, toY);
+		catnap(200);
+		kittens.mouseRelease(InputEvent.BUTTON1_MASK);
+		catnap(loadWait);
+		return;
 	}
 	
-	public static void catNap(int N) {
-		try {
-			Robot kittens = new Robot();
-			kittens.delay(N);
-		} catch(AWTException awte) {
-			awte.printStackTrace();
-		}
+	public static void catnap(int N) {
+		kittens.delay(N);
 	}
 	
 	public static int[][] screenToArray(int rectX, int rectY, int rectWidth, int rectHeight) {
-		try {
-			Rectangle rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
-			Robot kittens = new Robot();
-			//System.out.println("Grabbing screen in 3 seconds.");
-			kittens.delay(1000);
-			BufferedImage screenGrab = kittens.createScreenCapture(rect);
-			Raster image = screenGrab.getData();
-			int x, y, height, width;
-			height = image.getHeight();
-			width = image.getWidth();
-			int[] pixel;
-			int set = 0x736574;
-			int[][] imageMap = new int[height][width];
-		
-			for(y=0; y<height; y++) {
-				for(x=0; x<width; x++){
-					pixel = image.getPixel(x, y, new int[3]);
-					if(pixel[0] > 188 && pixel[1] > 188 && pixel[2] > 188) {
-						imageMap[y][x] = set;
-					} else {
-						imageMap[y][x] = 0;
-					}
+		Rectangle rect = new Rectangle(rectX, rectY, rectWidth, rectHeight);
+		//System.out.println("Grabbing screen in 3 seconds.");
+		catnap(1000);
+		BufferedImage screenGrab = kittens.createScreenCapture(rect);
+		Raster image = screenGrab.getData();
+		int x, y, height, width;
+		height = image.getHeight();
+		width = image.getWidth();
+		int[] pixel;
+		int set = 0x736574;
+		int[][] imageMap = new int[height][width];
+	
+		for(y=0; y<height; y++) {
+			for(x=0; x<width; x++){
+				pixel = image.getPixel(x, y, new int[3]);
+				if(pixel[0] > 188 && pixel[1] > 188 && pixel[2] > 188) {
+					imageMap[y][x] = set;
+				} else {
+					imageMap[y][x] = 0;
 				}
 			}
-			
-			return imageMap;
-		} catch(AWTException awte) {
-			awte.printStackTrace();
 		}
-		return null;
+		
+		return imageMap;
 	}
 	
 	public static int[][] connectedComponents(int[][] imageMap) {

@@ -1,52 +1,10 @@
 AngrassBat
 ==========
 
-A bat far the papelar game Angrass
+This is an intelligence gathering bot for the (awesome) game Ingress.
 
-Have it looking in a 60x40 squre that includes an unclaimed node (specific to my screen right now).
-It prints a 0x20 if the rgb value is far from white, it prints an X if it within a threshold.
-Output:
----
-Image got, sleeping 3 seconds then printing.
-Switch to full screen now.
-                                                            
-                                                            
-                                                            
-                                                            
-                                                            
-                                                            
-                                                            
-                           XX                               
-                         XXXXXXX                            
-                       XXXXX XXXXX                          
-                    XXXXX      XXXXX                        
-                  XXXXX           XXXX                      
-                  XXX               XXX                     
-                 XXX                 XX                     
-                 XX                   XX                    
-                XXX                   XX                    
-                XX                    XXX                   
-                XX                     XX                   
-               XX                      XX                   
-               XX                       XX                  
-              XXX                       XX                  
-              XX                        XX                  
-              XXX                       XX                  
-               XX                      XXX                  
-               XXX                     XX                   
-                XX                     XX                   
-                XX                    XX                    
-                 XX                   XX                    
-                 XX                  XXX                    
-                 XXX                 XX                     
-                  XXX              XXXX                     
-                  XXXXX          XXXXX                      
-                     XXXXX     XXXXX                        
-                       XXXXXXXXXXX                          
-                         XXXXXX                             
-                            X                               
-                                                            
-                                                            
-==========
+The idea is that the easiest points can be gotten from unclaimed portals. It is a total pain to search for unclaimed portals because you have to zoom in like crazy. Since I hate slow / tedious processes, I've decided to automate this.
 
-Detection for this unclaimed node should be fairly simple.
+This project was my first experience with screen scraping. The program uses the Java Robot class to take a screen shot. Then it passes it through a filter (for pixels with a high white value) and uses the Connected Components algorithm for counting the number of portals. That's the technical meat of it, mostly it just drags the map around.
+
+There is a bug for players who are using this along the 180th meridian. That means you folk in Siberia, Antarctica, and Fiji. It is pretty much a longitudal integer overflow, where the program will loop around the globe if it passes over the 180th and ends up outside of it's search grid. Feel free to submit a patch if this bug affects you.
