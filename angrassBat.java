@@ -56,9 +56,21 @@ public class angrassBat {
 		System.out.println("Sleeping 5 seconds. Bring up the Ingress Intel map now.");
 		catnap(5000);
 		
-		searchUnclaimed(origX, origY, width, height, linkX, linkY);
+		int[][] imageMap = screenToArray(origX, origY, width, height);
+		imageMap = connectedComponents(imageMap);	//builds equiv list
+		int count = estimatePortals();				//counts equiv list
+		System.out.println(count);
+		//searchUnclaimed(origX, origY, width, height, linkX, linkY);
 		//printImageMap(imageMap);
-		/*while(true) {
+		
+		/*for(int y=0; y<height; y++) {
+			for(int x=0; x<width; x++){
+				System.out.print(equivalenceList[x][y] + " ");
+			}
+			System.out.println();
+		}*/
+		
+		while(true) {
 			Color pixelColor = getColorAtMouse();
 			System.out.println(	"r: " + pixelColor.getRed() + 
 								"g: " + pixelColor.getGreen() + 
@@ -174,6 +186,7 @@ public class angrassBat {
 		int dragCount = 0;
 		int count = 0;
 		int direction = 2;	
+		int oldDirection = direction;
 		int fromX, fromY, toX, toY;
 		boolean found = false;
 		String link;
@@ -192,6 +205,7 @@ public class angrassBat {
 					fromY = origY + height;
 					toX = fromX;
 					toY = origY;
+					toY += 30;
 					break;
 				case 0:
 				case 1:
@@ -200,16 +214,17 @@ public class angrassBat {
 					fromY = origY;
 					toX = fromX;
 					toY = origY + height;
+					toY -= 30;
 					break;
 			}
-		
+			
 			imageMap = screenToArray(origX, origY, width, height);
 			imageMap = connectedComponents(imageMap);	//builds equiv list
 			count = estimatePortals();				//counts equiv list
 		
 			if(count > 0) {
 				link = getLink(linkX, linkY);
-				System.out.println(link);
+				System.out.println(link + " : " + count);
 				direction = processLink(link, midX, midY, direction);
 			}
 		
@@ -223,6 +238,7 @@ public class angrassBat {
 					fromX = origX + width;
 					fromY = origY + height / 2;
 					toX = origX;
+					toX += 30;
 					toY = fromY;
 					break;
 				case 1:
@@ -230,11 +246,12 @@ public class angrassBat {
 					fromX = origX;
 					fromY = origY + height / 2;
 					toX = origX + width;
+					toX -= 30;
 					toY = fromY;
 					break;
 			}
 			
-			int oldDirection = direction;
+			oldDirection = direction;
 			dragCount = 0;
 			while(true) {
 				imageMap = screenToArray(origX, origY, width, height);
@@ -246,7 +263,7 @@ public class angrassBat {
 					direction = processLink(link, midX, midY, direction);
 				
 					if(count > 0)
-						System.out.println(link);
+						System.out.println(link + " : " + count);
 				}
 							
 				dragMouse(fromX, fromY, toX, toY, 5000);
@@ -378,7 +395,7 @@ public class angrassBat {
 		for(y=0; y<height; y++) {
 			for(x=0; x<width; x++){
 				pixel = image.getPixel(x, y, new int[3]);
-				if(pixel[0] > 188 && pixel[1] > 188 && pixel[2] > 188) {
+				if(pixel[0] > 220 && pixel[1] > 220 && pixel[2] > 220) {
 					imageMap[y][x] = set;
 				} else {
 					imageMap[y][x] = 0;
@@ -489,7 +506,9 @@ public class angrassBat {
 		int i;
 		int count = 0;
 		for(i=0; i<1000; i++) {
-			count += equivalenceList[0][i] / 80;
+			count += equivalenceList[0][i] / 20;
+			if(equivalenceList[0][i] > 20)
+				System.out.println("Count: " + equivalenceList[0][i]);
 		}
 		
 		return count;
