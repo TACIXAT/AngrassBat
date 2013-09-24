@@ -17,6 +17,7 @@ import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 
 import java.util.Scanner;
+import java.lang.Math;
 
 public class angrassBat {
 	static Robot kittens;
@@ -56,14 +57,16 @@ public class angrassBat {
 		System.out.println("Sleeping 5 seconds. Bring up the Ingress Intel map now.");
 		catnap(5000);
 		
+		searchUnclaimed(origX, origY, width, height, linkX, linkY);
+		//printImageMap(imageMap);
+		
+		/*
 		int[][] imageMap = screenToArray(origX, origY, width, height);
 		imageMap = connectedComponents(imageMap);	//builds equiv list
 		int count = estimatePortals();				//counts equiv list
 		System.out.println(count);
-		//searchUnclaimed(origX, origY, width, height, linkX, linkY);
-		//printImageMap(imageMap);
 		
-		/*for(int y=0; y<height; y++) {
+		for(int y=0; y<height; y++) {
 			for(int x=0; x<width; x++){
 				System.out.print(equivalenceList[x][y] + " ");
 			}
@@ -376,7 +379,9 @@ public class angrassBat {
 	}
 	
 	public static void catnap(int N) {
-		kittens.delay(N);
+		double modifier = Math.random() / 3;
+		int fuzzy = N + N * modifier;
+		kittens.delay(fuzzy);
 	}
 	
 	public static int[][] screenToArray(int rectX, int rectY, int rectWidth, int rectHeight) {
