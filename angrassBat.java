@@ -380,7 +380,8 @@ public class angrassBat {
 	
 	public static void catnap(int N) {
 		double modifier = Math.random() / 3;
-		int fuzzy = N + N * modifier;
+		int extra = (int)(modifier * 100) * N / 100;
+		int fuzzy = N + extra;
 		kittens.delay(fuzzy);
 	}
 	
